@@ -1,16 +1,16 @@
 ﻿
 // WinOGLView.h : CWinOGLView クラスのインターフェイス
 //
-
 #pragma once
 #include <gl/GL.h>
-
+#include "CAdminControl.h"
 
 class CWinOGLView : public CView
 {
 protected: // シリアル化からのみ作成します。
 	CWinOGLView() noexcept;
 	DECLARE_DYNCREATE(CWinOGLView)
+	
 
 // 属性
 public:
@@ -48,6 +48,8 @@ public:
 	afx_msg void OnDestroy();
 	afx_msg BOOL OnEraseBkgnd(CDC* pDC);
 	afx_msg void OnSize(UINT nType, int cx, int cy);
+private:
+	CAdminControl AC;
 };
 
 #ifndef _DEBUG  // WinOGLView.cpp のデバッグ バージョン

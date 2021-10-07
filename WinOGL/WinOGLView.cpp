@@ -63,22 +63,23 @@ void CWinOGLView::OnDraw(CDC* pDC)
 	glClearColor(0.0, 0.0, 0.0, 1.0);
 	glClear(GL_COLOR_BUFFER_BIT /* | GL_DEPTH_BUFFER_BIT*/);
 
-	
+	AC.Draw();
+
+	/*
 	glColor3f(1.0, 1.0, 1.0);
 
 	glPointSize(5);
 	glBegin(GL_POINTS);
 	glVertex2f(ClickX ,ClickY);
 
-	/*
 	glBegin(GL_LINE_LOOP);
-
 	glVertex2f(0.5, 0.5);
 	glVertex2f(-0.5, 0.5);
 	glVertex2f(-0.5, -0.5);
 	glVertex2f(0.5, -0.5);
-	*/
+	
 	glEnd();
+	*/
 
 	glFlush();
 	SwapBuffers(pDC->m_hDC);
@@ -136,8 +137,10 @@ void CWinOGLView::OnLButtonDown(UINT nFlags, CPoint point)
 		ClickY = ClickY * hi;
 	}
 
-	RedrawWindow();
+	//CAdminControlへXYを受け渡し
+	AC.inheritVertex(ClickX, ClickY);
 
+	RedrawWindow();
 	CView::OnLButtonDown(nFlags, point);
 }
 
