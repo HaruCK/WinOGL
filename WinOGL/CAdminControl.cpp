@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "CAdminControl.h"
+#include <math.h>
 
 CAdminControl::CAdminControl()
 {
@@ -7,50 +8,81 @@ CAdminControl::CAdminControl()
 
 CAdminControl::~CAdminControl()
 {
-	vertex_head->FreeVertex();
+	shape_head->FreeShape();
 }
 
 void CAdminControl::Draw()
 {
-	CVertex* nowVertex = vertex_head;
+	CShape* nowShape = shape_head;
 
-	glColor3f(1.0, 1.0, 1.0);
-	glPointSize(10);
-
-	/*ŽlŠpŒ`‚Ì•`ŽÊ
-	glBegin(GL_LINE_LOOP);
-	glVertex2f(0.5, 0.5);
-	glVertex2f(-0.5, 0.5);
-	glVertex2f(-0.5, -0.5);
-	glVertex2f(0.5, -0.5);
-	*/
-
-	glBegin(GL_POINTS);
-
-	while(nowVertex != NULL) {
-		glVertex2f(nowVertex->GetX(), nowVertex->GetY());
-		nowVertex = nowVertex->GetNext();
-	}
-
-	glEnd();
-}
-
-CVertex* CAdminControl::inheritVertex(float x, float y) {
-	CVertex* nowVertex = vertex_head;
-	CVertex* newVertex = new CVertex(x, y);
-
-	if (nowVertex != NULL)
+	while (nowShape != NULL)
 	{
-		while (nowVertex->GetNext() != NULL) 
+		glColor3f(1.0, 1.0, 1.0);
+		glPointSize(10);
+		glBegin(GL_POINTS);
+
+		CVertex* nowVertex = nowShape->GetV();
+
+		while (nowVertex != NULL)
 		{
+			glVertex2f(nowVertex->GetX(), nowVertex->GetY());
 			nowVertex = nowVertex->GetNext();
 		}
-		nowVertex->SetNext(newVertex);
+		glEnd();
+
+
+		glColor3f(1.0, 1.0, 1.0);
+		glPointSize(10);
+		glBegin(GL_LINE_STRIP);
+
+		nowVertex = nowShape->GetV();
+
+		while (nowVertex != NULL)
+		{
+			glVertex2f(nowVertex->GetX(), nowVertex->GetY());
+			nowVertex = nowVertex->GetNext();
+		}
+		glEnd();
+
+		nowShape = nowShape->GetSNext();
+	}
+}
+void CAdminControl::inheritShape() {
+	CShape* newShape = new CShape();
+	newShape->SetSNext(shape_head);
+	shape_head = newShape;
+}
+
+float CAdminControl::Distance(CVertex* s, float x, float y)
+{
+	float d,X,Y;
+
+	X = x - s->GetX();
+	Y = y - s->GetY();
+
+	d = sqrt(pow(X, 2) + pow(Y, 2));
+
+	return d;
+}
+
+void CAdminControl::CreateShape(float x, float y)
+{
+	if (shape_head == NULL)
+	{
+		inheritShape();
+	}
+
+	if (shape_head->CountVertex() < 3)
+	{
+		shape_head->inheritVertex(x, y);
+	}
+	else if (Distance(shape_head->GetV(), x, y) <= 0.1)
+	{
+		shape_head->inheritVertex(shape_head->GetV()->GetX(), shape_head->GetV()->GetY());
+		inheritShape();
 	}
 	else
 	{
-		vertex_head = newVertex;
+		shape_head->inheritVertex(x, y);
 	}
-
-	return newVertex;
 }

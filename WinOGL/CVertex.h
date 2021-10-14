@@ -1,4 +1,5 @@
 #pragma once
+
 class CVertex
 {
 public:
@@ -14,7 +15,6 @@ private:
 	float y;
 	//　次の頂点リストを指すポインタ
 	CVertex* next_vertex;
-
 
 public:
 	//　頂点のX座標を書き込む

@@ -23,6 +23,7 @@ CVertex::CVertex(float new_x, float new_y, CVertex* new_next)
 	SetNext(new_next);
 }
 
+
 //　頂点のX座標を書き込む
 void CVertex::SetX(float new_x)
 {
@@ -54,7 +55,8 @@ void CVertex::SetXY(float new_x, float new_y)
 	y = new_y;
 }
 
-//　頂点のX座標を読み込む込む
+
+//　頂点のX座標を読み込む
 float CVertex::GetX()
 {
 	return x;
@@ -72,6 +74,7 @@ void CVertex::GetXY(float* get_x, float* get_y)
 	get_x = &x;
 	get_y = &y;
 }
+
 
 //　次の頂点リストを指すポインタを書き込む
 void CVertex::SetNext(CVertex* new_next)

@@ -35,6 +35,8 @@ END_MESSAGE_MAP()
 CWinOGLView::CWinOGLView() noexcept
 {
 	// TODO: 構築コードをここに追加します。
+	ClickX = 0;
+	ClickY = 0;
 
 }
 
@@ -138,7 +140,7 @@ void CWinOGLView::OnLButtonDown(UINT nFlags, CPoint point)
 	}
 
 	//CAdminControlへXYを受け渡し
-	AC.inheritVertex(ClickX, ClickY);
+	AC.CreateShape((float)ClickX, (float)ClickY);
 
 	RedrawWindow();
 	CView::OnLButtonDown(nFlags, point);

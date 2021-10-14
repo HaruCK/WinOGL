@@ -45,6 +45,9 @@
     <ClInclude Include="CVertex.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
+    <ClInclude Include="CShape.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="WinOGL.cpp">
@@ -66,6 +69,9 @@
       <Filter>ソース ファイル</Filter>
     </ClCompile>
     <ClCompile Include="CVertex.cpp">
+      <Filter>ソース ファイル</Filter>
+    </ClCompile>
+    <ClCompile Include="CShape.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
   </ItemGroup>
