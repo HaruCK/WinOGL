@@ -16,6 +16,13 @@ public:
 	float Distance(CVertex* s, float x, float y);
 	void CreateShape(float x, float y);
 
+	bool ShapeFlag = false;
+
+	bool JudCross(float Bex, float Bey);
+	bool AltJudCross(float Bex, float Bey);
+	bool LastJudgment(float Bex, float Bey, CVertex* As, CVertex* Ae, CVertex* Bs);
+
+
 private:
 	CShape* shape_head = NULL;
 	CShape* shape_change = NULL;

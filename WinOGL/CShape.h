@@ -19,6 +19,8 @@ public:
 	CVertex* inheritVertex(float x, float y);
 	int CountVertex();
 
+	//bool Shape_Flag = false;
+
 private:
 	CShape* shape_next;
 	CVertex* vertex_head = NULL;
