@@ -16,11 +16,20 @@ public:
 	float Distance(CVertex* s, float x, float y);
 	void CreateShape(float x, float y);
 
+	float nisk(float ax,float ay,float bx,float by);
+	float gisk(float ax, float ay, float bx, float by);
+
 	bool ShapeFlag = false;
 
 	bool JudCross(float Bex, float Bey);
 	bool AltJudCross(float Bex, float Bey);
 	bool LastJudgment(float Bex, float Bey, CVertex* As, CVertex* Ae, CVertex* Bs);
+
+	bool InOutJug(float x, float y);
+	bool AltInOutJug();
+
+
+
 
 
 private:
