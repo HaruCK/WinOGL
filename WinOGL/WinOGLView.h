@@ -52,6 +52,16 @@ public:
 	afx_msg void OnSize(UINT nType, int cx, int cy);
 private:
 	CAdminControl AC;
+public:
+	int ModeFlag = 1;
+
+	afx_msg void OnXyz();
+	afx_msg void OnUpdateXyz(CCmdUI* pCmdUI);
+	afx_msg void OnDrawing();
+
+	afx_msg void OnEdit();
+	afx_msg void OnUpdateDrawing(CCmdUI* pCmdUI);
+	afx_msg void OnUpdateEdit(CCmdUI* pCmdUI);
 };
 
 #ifndef _DEBUG  // WinOGLView.cpp のデバッグ バージョン

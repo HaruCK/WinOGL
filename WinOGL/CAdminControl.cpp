@@ -2,7 +2,7 @@
 #include "CAdminControl.h"
 #include <math.h>
 
-#define PI 3.141592
+#define PI 3.14159265359
 
 CAdminControl::CAdminControl()
 {
@@ -15,7 +15,14 @@ CAdminControl::~CAdminControl()
 
 void CAdminControl::Draw()
 {
+	if (AxisFlag)//XYZ軸の描写，真なら描写
+	{
+		DrawAxis();
+	}
+
 	CShape* nowShape = shape_head;
+
+	CVertex* nowVertex;
 
 	while (nowShape != NULL)
 	{
@@ -24,7 +31,7 @@ void CAdminControl::Draw()
 		glPointSize(10);
 		glBegin(GL_POINTS);
 
-		CVertex* nowVertex = nowShape->GetV();
+		nowVertex = nowShape->GetV();
 
 		while (nowVertex != NULL)
 		{
@@ -32,11 +39,11 @@ void CAdminControl::Draw()
 			nowVertex = nowVertex->GetNext();
 		}
 		glEnd();
-		
+
 		//閉じてたらループ，最新で閉じてない奴は線で描写
 		if (nowShape != shape_head)
 		{
-			glColor3f(1.0, 1.0, 1.0);
+			glColor3f(1.0, 1.0, 0.0);
 			glPointSize(10);
 			glBegin(GL_LINE_LOOP);
 
@@ -51,7 +58,7 @@ void CAdminControl::Draw()
 		}
 		else
 		{
-			glColor3f(1.0, 1.0, 1.0);
+			glColor3f(0.0, 1.0, 1.0);
 			glPointSize(10);
 			glBegin(GL_LINE_STRIP);
 
@@ -67,14 +74,50 @@ void CAdminControl::Draw()
 
 		nowShape = nowShape->GetSNext();
 	}
+
+	if (select_vertex != NULL)
+	{
+		glColor3f(1.0, 0.0, 1.0);
+		glBegin(GL_POINTS);
+		glVertex2f(select_vertex->GetX(), select_vertex->GetY());
+		glEnd();
+	}
+	
+	if (select_shape != NULL)
+	{
+		nowVertex = select_shape->GetV();
+		glColor3f(1.0, 0.0, 1.0);
+		glLineWidth(2);
+		glBegin(GL_POINTS);
+		while (nowVertex != NULL)
+		{
+			glVertex2f(nowVertex->GetX(), nowVertex->GetY());
+			nowVertex = nowVertex->GetNext();
+		}
+		glEnd();
+
+		nowVertex = select_shape->GetV();
+		glColor3f(1.0, 0.0, 1.0);
+		glLineWidth(2);
+		glBegin(GL_LINE_LOOP);
+		while (nowVertex != NULL)
+		{
+			glVertex2f(nowVertex->GetX(), nowVertex->GetY());
+			nowVertex = nowVertex->GetNext();
+		}
+		glEnd();
+	}
+
 }
 
+//新しいshapeへ移る
 void CAdminControl::inheritShape() {
 	CShape* newShape = new CShape();
 	newShape->SetSNext(shape_head);
 	shape_head = newShape;
 }
 
+//点と点の距離
 float CAdminControl::Distance(CVertex* s, float x, float y)
 {
 	float d,X,Y;
@@ -87,47 +130,66 @@ float CAdminControl::Distance(CVertex* s, float x, float y)
 	return d;
 }
 
+float CAdminControl::Distance(float vx, float vy, float x, float y)
+{
+	float d, X, Y;
+
+	X = x - vx;
+	Y = y - vy;
+
+	d = sqrt(pow(X, 2) + pow(Y, 2));
+
+	return d;
+}
+
+//点を打てるかの処理を行う
 void CAdminControl::CreateShape(float x, float y)
 {
-	//1-1のみ
-	if (shape_head == NULL)
+	if (ModeFlag == 0)//描画モード
 	{
-		inheritShape();
-	}
-	
-	if (shape_head->CountVertex() < 3)//三点未満のとき
-	{
-		if (shape_head->CountVertex() == 0 )//一点目
+		if (shape_head == NULL)//1-1のみ
 		{
-			if (!InOutJug(x, y))//内外判定ヨシ
+			inheritShape();
+		}
+
+		if (shape_head->CountVertex() < 3)//三点未満のとき
+		{
+			if (shape_head->CountVertex() == 0)//一点目
+			{
+				if (!InOutJug(x, y))//内外判定ヨシ
+				{
+					shape_head->inheritVertex(x, y);
+				}
+			}
+			else if (!AltJudCross(x, y))//他交差してない
 			{
 				shape_head->inheritVertex(x, y);
 			}
 		}
-		else if (!AltJudCross(x, y))//他交差してない
+		else if (Distance(shape_head->GetV(), x, y) <= 0.1)//閉じる時
 		{
-			shape_head->inheritVertex(x, y);
+			float MrX = shape_head->GetV()->GetX();
+			float MsY = shape_head->GetV()->GetY();
+			if (!JudCross(MrX, MsY) && !AltJudCross(MrX, MsY) && !AltInOutJug())//自交差，他交差，内包なし
+			{
+				inheritShape();
+			}
+			else if (!JudCross(x, y) && !AltJudCross(x, y))//自交差してない，他交差してない
+			{
+				shape_head->inheritVertex(x, y);
+			}
+		}
+		else//閉じないとき
+		{
+			if (!JudCross(x, y) && !AltJudCross(x, y))
+			{
+				shape_head->inheritVertex(x, y);
+			}
 		}
 	}
-	else if (Distance(shape_head->GetV(), x, y) <= 0.07)//閉じる時
+	else if (ModeFlag == 1)//選択モード
 	{
-		float MrX = shape_head->GetV()->GetX();
-		float MsY = shape_head->GetV()->GetY();
-		if (!JudCross(MrX,MsY) && !AltJudCross(MrX,MsY) && !AltInOutJug())//自交差，他交差，内包なし
-		{
-			inheritShape();
-		}
-		else if (!JudCross(x, y) && !AltJudCross(x, y))//自交差してない，他交差してない
-		{
-			shape_head->inheritVertex(x, y);
-		}
-	}
-	else//閉じないとき
-	{
-		if (!JudCross(x, y) && !AltJudCross(x, y))
-		{
-			shape_head->inheritVertex(x, y);
-		}
+		SelectPosition(x, y);
 	}
 }
 
@@ -222,7 +284,7 @@ bool CAdminControl::AltJudCross(float Bex, float Bey)
 	return false;
 }
 
-
+//交差判定
 bool CAdminControl::LastJudgment(float Bex, float Bey, CVertex* As, CVertex* Ae, CVertex* Bs)
 {
 	float c1, c2, c3, c4;
@@ -321,7 +383,7 @@ bool CAdminControl::AltInOutJug()
 	CVertex* Ae = As->GetNext();
 
 	CShape* nowS = shape_head->GetSNext();
-	CVertex* attV = shape_head->GetSNext()->GetV();
+	CVertex* attV;
 
 	float ax, ay, bx, by;
 
@@ -330,6 +392,8 @@ bool CAdminControl::AltInOutJug()
 
 	while (nowS != NULL)
 	{
+		attV = nowS->GetV();
+
 		As = shape_head->GetV();
 		Ae = As->GetNext();
 		totalAng = 0;
@@ -361,10 +425,108 @@ bool CAdminControl::AltInOutJug()
 		{
 			return true;
 		}
-
 		nowS = nowS->GetSNext();
+		
+
 	}
 	return false;
+}
+
+bool CAdminControl::AltInOutJug(CShape* nowShape, float x, float y)
+{
+	CVertex* As = nowShape->GetV();
+	CVertex* Ae = As->GetNext();
+
+	float ax, ay, bx, by;
+
+	float totalAng = 0;
+	float stockAng = 0;
+
+	while (As != NULL)
+	{
+		stockAng = 0;
+
+		ax = As->GetX() - x;
+		ay = As->GetY() - y;
+		bx = Ae->GetX() - x;
+		by = Ae->GetY() - y;
+
+		//角の計算
+		stockAng = atan2(gisk(ax, ay, bx, by), nisk(ax, ay, bx, by));
+
+		As = As->GetNext();
+		Ae = Ae->GetNext();
+
+		totalAng = totalAng + stockAng;
+
+		if (Ae == NULL)
+		{
+			Ae = nowShape->GetV();
+		}
+	}
+	if (2 * PI - fabs(totalAng) <= 0.0001)
+	{
+		return true;
+	}
+	return false;
+}
+
+//XYZ軸の描写
+void CAdminControl::DrawAxis()
+{
+	glBegin(GL_LINES);
+
+	//X軸 R
+	glColor3f(1.0, 0.0, 0.0);
+	glVertex3f(-1.0, 0.0, 0.0);
+	glVertex3f(1.0, 0.0, 0.0);
+
+	//Y軸 G
+	glColor3f(0.0, 1.0, 0.0);
+	glVertex3f(0.0, -1.0, 0.0);
+	glVertex3f(0.0, 1.0, 0.0);
+	
+	//Z軸 B
+ 	glColor3f(0.0, 0.0, 1.0);
+	glVertex3f(0.0, 0.0, -1.0);
+	glVertex3f(0.0, 0.0, 1.0);
+
+	glEnd();
+}
+
+void CAdminControl::SelectPosition(float x, float y)
+{
+	CShape* nowShape = shape_head;
+
+	while (nowShape != NULL)
+	{
+		CVertex* nowVertex = nowShape->GetV();
+
+		while (nowVertex != NULL)//点を見る
+		{
+			if (Distance(nowVertex->GetX(), nowVertex->GetY(), x, y) <= 0.08)
+			{
+				select_vertex = nowVertex;
+				select_shape = NULL;
+				return;
+			}
+			//点と線見る
+
+			nowVertex = nowVertex->GetNext();
+		}
+
+		if (nowShape->GetSNext() != NULL)
+		{
+			if (AltInOutJug(nowShape->GetSNext(), x, y))//形を見る
+			{
+				select_shape = nowShape->GetSNext();
+				select_vertex = NULL;
+				return;
+			}
+		}
+
+		nowShape = nowShape->GetSNext();
+	}
 }
 
 

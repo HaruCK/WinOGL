@@ -28,6 +28,12 @@ BEGIN_MESSAGE_MAP(CWinOGLView, CView)
 	ON_WM_DESTROY()
 	ON_WM_ERASEBKGND()
 	ON_WM_SIZE()
+	ON_COMMAND(ID_XYZ, &CWinOGLView::OnXyz)
+	ON_UPDATE_COMMAND_UI(ID_XYZ, &CWinOGLView::OnUpdateXyz)
+	ON_COMMAND(ID_DRAWING, &CWinOGLView::OnDrawing)
+	ON_COMMAND(ID_EDIT, &CWinOGLView::OnEdit)
+	ON_UPDATE_COMMAND_UI(ID_DRAWING, &CWinOGLView::OnUpdateDrawing)
+	ON_UPDATE_COMMAND_UI(ID_EDIT, &CWinOGLView::OnUpdateEdit)
 END_MESSAGE_MAP()
 
 // CWinOGLView コンストラクション/デストラクション
@@ -66,23 +72,7 @@ void CWinOGLView::OnDraw(CDC* pDC)
 	glClear(GL_COLOR_BUFFER_BIT /* | GL_DEPTH_BUFFER_BIT*/);
 
 	AC.Draw();
-
-	/*
-	glColor3f(1.0, 1.0, 1.0);
-
-	glPointSize(5);
-	glBegin(GL_POINTS);
-	glVertex2f(ClickX ,ClickY);
-
-	glBegin(GL_LINE_LOOP);
-	glVertex2f(0.5, 0.5);
-	glVertex2f(-0.5, 0.5);
-	glVertex2f(-0.5, -0.5);
-	glVertex2f(0.5, -0.5);
 	
-	glEnd();
-	*/
-
 	glFlush();
 	SwapBuffers(pDC->m_hDC);
 	wglMakeCurrent(pDC->m_hDC, NULL);
@@ -218,4 +208,67 @@ void CWinOGLView::OnSize(UINT nType, int cx, int cy)
 	glMatrixMode(GL_MODELVIEW);
 	RedrawWindow();
 	wglMakeCurrent(clientDC.m_hDC, NULL);
+}
+
+//XYZ軸の切り替え
+void CWinOGLView::OnXyz()
+{
+	if (!AC.AxisFlag)
+	{
+		AC.AxisFlag = true;
+	}
+	else
+	{
+		AC.AxisFlag = false;
+	}
+	RedrawWindow();
+}
+
+void CWinOGLView::OnUpdateXyz(CCmdUI* pCmdUI)
+{
+	if (AC.AxisFlag)
+	{
+		pCmdUI->SetCheck(true);
+	}
+	else
+	{
+		pCmdUI->SetCheck(false);
+	}
+}
+
+
+void CWinOGLView::OnDrawing()
+{
+	AC.ModeFlag = 0;
+	RedrawWindow();
+}
+
+void CWinOGLView::OnUpdateDrawing(CCmdUI* pCmdUI)
+{
+	if (AC.ModeFlag == 0)
+	{
+		pCmdUI->SetCheck(true);
+	}
+	else
+	{
+		pCmdUI->SetCheck(false);
+	}
+}
+
+void CWinOGLView::OnEdit()
+{
+	AC.ModeFlag = 1;
+	RedrawWindow();
+}
+
+void CWinOGLView::OnUpdateEdit(CCmdUI* pCmdUI)
+{
+	if (AC.ModeFlag == 1)
+	{
+		pCmdUI->SetCheck(true);
+	}
+	else
+	{
+		pCmdUI->SetCheck(false);
+	}
 }
