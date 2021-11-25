@@ -21,6 +21,7 @@ private:
 
 // 操作
 public:
+	bool nowLButton = false;
 
 // オーバーライド
 public:
@@ -62,6 +63,8 @@ public:
 	afx_msg void OnEdit();
 	afx_msg void OnUpdateDrawing(CCmdUI* pCmdUI);
 	afx_msg void OnUpdateEdit(CCmdUI* pCmdUI);
+	afx_msg void OnLButtonUp(UINT nFlags, CPoint point);
+	afx_msg void OnMouseMove(UINT nFlags, CPoint point);
 };
 
 #ifndef _DEBUG  // WinOGLView.cpp のデバッグ バージョン
