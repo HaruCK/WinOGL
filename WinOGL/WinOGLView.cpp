@@ -36,6 +36,7 @@ BEGIN_MESSAGE_MAP(CWinOGLView, CView)
 	ON_UPDATE_COMMAND_UI(ID_EDIT, &CWinOGLView::OnUpdateEdit)
 	ON_WM_LBUTTONUP()
 	ON_WM_MOUSEMOVE()
+	ON_WM_RBUTTONDOWN()
 END_MESSAGE_MAP()
 
 // CWinOGLView コンストラクション/デストラクション
@@ -140,18 +141,13 @@ void CWinOGLView::OnLButtonDown(UINT nFlags, CPoint point)
 
 	if (AC.ModeFlag == 1)
 	{
-		if (AC.SelectEdgeFlag)
+		AC.SelectPosition((float)ClickX, (float)ClickY);
+
+		if (AC.SelectEdgeFlag && AC.SameSelect())
 		{
-			
-		}
-		else
-		{
-			AC.CreateShape((float)ClickX, (float)ClickY);
+			AC.AddVertex(ClickX, ClickY);
 		}
 	}
-
-	
-
 	RedrawWindow();
 	CView::OnLButtonDown(nFlags, point);
 }
@@ -295,37 +291,6 @@ void CWinOGLView::OnUpdateEdit(CCmdUI* pCmdUI)
 
 void CWinOGLView::OnLButtonUp(UINT nFlags, CPoint point)
 {
-	/*
-	CRect rect;
-	GetClientRect(rect); // 描画領域の大きさを取得
-
-	rect.Width();
-	rect.Height();
-
-	ClickX = (double)point.x / rect.Width();
-	ClickX = (ClickX * 2) - 1;
-
-	ClickY = (double)point.y / rect.Height();
-	ClickY = (ClickY - 1) * -1;
-	ClickY = (ClickY * 2) - 1;
-
-	if (rect.Width() > rect.Height())
-	{
-		double hi = (double)rect.Width() / rect.Height();
-		ClickX = ClickX * hi;
-	}
-	else
-	{
-		double hi = (double)rect.Height() / rect.Width();
-		ClickY = ClickY * hi;
-	}
-	
-	//選択モードかつ点が選択されてる時＝点の移動
-	if (AC.ModeFlag == 1 && AC.SelectVertexFlag )
-	{
-		AC.SelectPosition((float)ClickX, (float)ClickY);
-	}
-	*/
 	nowLButton = false;
 	RedrawWindow();
 
@@ -359,6 +324,7 @@ void CWinOGLView::OnMouseMove(UINT nFlags, CPoint point)
 		ClickY = ClickY * hi;
 	}
 
+
 	if (AC.ModeFlag == 1 && AC.SelectVertexFlag)
 	{
 		if (nowLButton)
@@ -372,4 +338,43 @@ void CWinOGLView::OnMouseMove(UINT nFlags, CPoint point)
 	RedrawWindow();
 	CView::OnMouseMove(nFlags, point);
 
+}
+
+
+void CWinOGLView::OnRButtonDown(UINT nFlags, CPoint point)
+{
+	//nowRButton = true;
+	CRect rect;
+	GetClientRect(rect); // 描画領域の大きさを取得
+
+	rect.Width();
+	rect.Height();
+
+	ClickX = (double)point.x / rect.Width();
+	ClickX = (ClickX * 2) - 1;
+
+	ClickY = (double)point.y / rect.Height();
+	ClickY = (ClickY - 1) * -1;
+	ClickY = (ClickY * 2) - 1;
+
+	if (rect.Width() > rect.Height())
+	{
+		double hi = (double)rect.Width() / rect.Height();
+		ClickX = ClickX * hi;
+	}
+	else
+	{
+		double hi = (double)rect.Height() / rect.Width();
+		ClickY = ClickY * hi;
+	}
+
+	if (AC.ModeFlag == 1)
+	{
+		if (AC.SelectVertexFlag)
+		{
+			AC.DeleteVertex();
+		}
+	}
+	RedrawWindow();
+	CView::OnRButtonDown(nFlags, point);
 }

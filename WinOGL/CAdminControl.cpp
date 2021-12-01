@@ -163,6 +163,7 @@ float CAdminControl::Distance(float vx, float vy, float x, float y)
 	return d;
 }
 
+
 float CAdminControl::Distance(float nx, float ny, float ex, float ey, float x, float y)
 {
 	float d = 1,s;
@@ -184,7 +185,9 @@ float CAdminControl::Distance(float nx, float ny, float ex, float ey, float x, f
 	return d;
 }
 
-//描写モードの時，点を打てるかの処理．を行う
+
+
+//描写モードの時，点を打てるかの処理を行う
 void CAdminControl::CreateShape(float x, float y)
 {
 	if (ModeFlag == 0)//描画モード
@@ -229,10 +232,9 @@ void CAdminControl::CreateShape(float x, float y)
 			}
 		}
 	}
-
+	/*
 	else if (ModeFlag == 1)//選択モード
 	{
-		/*
 		if (SelectVertexFlag)
 		{
 			if (!JudCross(x, y) && !AltJudCross(x, y))
@@ -240,9 +242,9 @@ void CAdminControl::CreateShape(float x, float y)
 				
 			}
 		}
-		*/
 		SelectPosition(x, y);
 	}
+	*/
 }
 
 //内積計算
@@ -444,6 +446,10 @@ bool CAdminControl::AltJudCross(float vx, float vy, CVertex* preV, CShape* nowS)
 	{
 		nowShape = nowShape->GetSNext();
 	}
+	if (nowShape == NULL)
+	{
+		return true;
+	}
 
 	CVertex* As = nowShape->GetV();
 	CVertex* Ae = As->GetNext();
@@ -619,6 +625,65 @@ bool CAdminControl::InOutJug(float x, float y)
 
 		nowS = nowS->GetSNext();
 	}
+	return false;
+}
+
+bool CAdminControl::InOutJug(CVertex* preVertex, CVertex* nowVertex, CVertex* nextVertex)
+{
+	CShape* nowShape = shape_head;
+	if (nowShape->GetV() == NULL)
+	{
+		nowShape = nowShape->GetSNext();
+	}
+
+	float stockAng = 0;
+	float totalAng = 0;
+
+	CVertex* attV = nowShape->GetV();
+
+	while (nowShape != NULL)
+	{
+		attV = nowShape->GetV();
+
+		while (attV != NULL)
+		{
+			if (attV == preVertex || attV == nowVertex || attV == nextVertex)
+			{
+				attV = attV->GetNext();
+			}
+			else
+			{
+				stockAng = 0;
+				totalAng = 0;
+
+				float x = attV->GetX();
+				float y = attV->GetY();
+
+				float preX = preVertex->GetX() - x;
+				float preY = preVertex->GetY() - y;
+				float nowX = nowVertex->GetX() - x;
+				float nowY = nowVertex->GetY() - y;
+				float nextX = nextVertex->GetX() - x;
+				float nextY = nextVertex->GetY() - y;
+
+				//角の計算
+				stockAng = atan2(gisk(preX, preY, nowX, nowY), nisk(preX, preY, nowX, nowY));
+				totalAng = totalAng + stockAng;
+				stockAng = atan2(gisk(nowX, nowY, nextX, nextY), nisk(nowX, nowY, nextX, nextY));
+				totalAng = totalAng + stockAng;
+				stockAng = atan2(gisk(nextX, nextY, preX, preY), nisk(nextX, nextY, preX, preY));
+				totalAng = totalAng + stockAng;
+
+				if (2 * PI - fabs(totalAng) <= 0.0001)
+				{
+					return true;
+				}
+				attV = attV->GetNext();
+			}
+		}
+		nowShape = nowShape->GetSNext();
+	}
+	
 	return false;
 }
 
@@ -815,6 +880,10 @@ void CAdminControl::SelectPosition(float x, float y)
 {
 	CShape* nowShape = shape_head;
 
+	preSelect_shape = select_shape;
+	preSelect_vertex = select_vertex;
+	preSelect_vertexNext = select_vertexNext;
+
 	while (nowShape != NULL)
 	{
 		//点を見る(点,NULL,NULL)
@@ -880,12 +949,23 @@ void CAdminControl::SelectPosition(float x, float y)
 		}
 		nowShape = nowShape->GetSNext();
 	}
+
+	select_shape = NULL;
+	select_vertex = NULL;
+	select_vertexNext = NULL;
+	NowSelect(0);
+	return;
 }
 
 void CAdminControl::NowSelect(int x)
 {
 	switch (x)
 	{
+	case 0:
+		SelectVertexFlag = false;
+		SelectEdgeFlag = false;
+		SelectShapeFlag = false;
+		break;
 	case 1:
 		SelectVertexFlag = true;
 		SelectEdgeFlag = false;
@@ -950,7 +1030,7 @@ void CAdminControl::MoveVertexJug(float x, float y, CVertex* nowMoveXY)
 
 	//nowMoveにx,yをいれる
 	nowMoveXY->SetXY(x, y);
-
+	
 	//自交差している
 	if (JudCross(x, y, preVertex, nowShape))
 	{
@@ -967,3 +1047,148 @@ void CAdminControl::MoveVertexJug(float x, float y, CVertex* nowMoveXY)
 		nowMoveXY->SetXY(OrigX, OrigY);
 	}
 }
+
+bool CAdminControl::SameSelect()
+{
+	if (preSelect_shape == select_shape && preSelect_vertex == select_vertex && preSelect_vertexNext == select_vertexNext)
+	{
+		return true;
+	}
+	return false;
+}
+
+void CAdminControl::AddVertex(float x, float y)
+{
+	CShape* nowShape = shape_head;
+	if (nowShape->GetV() == NULL)
+	{
+		nowShape = nowShape->GetSNext();
+	}
+
+	CVertex* nowEdgeS = select_vertex;
+	float sx = nowEdgeS->GetX();
+	float sy = nowEdgeS->GetY();
+
+	CVertex* nowEdgeE = select_vertexNext;
+	float ex = nowEdgeE->GetX();
+	float ey = nowEdgeE->GetY();
+	
+	float s ,t;
+	CVertex ba;
+	CVertex bp;
+	//CVertex ap;
+
+	ba.SetXY(sx - ex, sy - ey);//P1->P2
+	bp.SetXY(x - ex, y - ey);//P2->P3
+	//ap.SetXY(x - sx, y - sy);//P1->P3
+
+	s = nisk(bp.GetX(), bp.GetY(), ba.GetX(), ba.GetY()) / nisk(ba.GetX(), ba.GetY(), ba.GetX(), ba.GetY());
+	t = 1 - s;
+
+	//x = s * ba.GetX() + t * bp.GetX();
+	//y = s * ba.GetY() + t * bp.GetY();
+
+	x = nowEdgeS->GetX() + ba.GetX() * -t;
+	y = nowEdgeS->GetY() + ba.GetY() * -t;
+
+
+	CVertex* addV = new CVertex(x, y);
+
+	if (nowEdgeS->GetNext() == NULL)
+	{
+		nowEdgeS->SetNext(addV);
+	}
+	else
+	{
+		nowEdgeS->SetNext(addV);
+		addV->SetNext(nowEdgeE);
+	}
+
+	select_shape = NULL;
+	select_vertex = NULL;
+	select_vertexNext = NULL;
+	NowSelect(0);
+}
+
+
+void CAdminControl::DeleteVertex()
+{
+	CVertex* preVertex = NULL;
+	CVertex* nowVertex = NULL;
+	CVertex* nextVertex = NULL;
+
+	CShape* nowShape = shape_head;
+	if (nowShape->GetV() == NULL)
+	{
+		nowShape = nowShape->GetSNext();
+	}
+
+	while (nowShape != NULL)
+	{
+		nowVertex = nowShape->GetV();
+		nextVertex = nowVertex->GetNext();
+
+		while (nowVertex != NULL)
+		{
+
+			if (nowVertex == select_vertex && nowShape->CountVertex() > 3)
+			{
+				//選択した点=始点
+				if (nowVertex == nowShape->GetV())
+				{
+					preVertex = nowShape->GetV();
+					while (preVertex->GetNext() != NULL)
+					{
+						preVertex = preVertex->GetNext();
+					}
+					nextVertex = nowVertex->GetNext();
+
+					//内外なし(終点,始点,次の点)
+					if (!InOutJug(preVertex, nowVertex, nextVertex))
+					{
+						nowShape->SetV(nowVertex->GetNext());
+
+						delete nowVertex;
+
+						select_shape = NULL;
+						select_vertex = NULL;
+						select_vertexNext = NULL;
+						NowSelect(0);
+					}
+				}
+				//選択した点=始点以外
+				else
+				{
+					preVertex = nowShape->GetV();
+					while (preVertex->GetNext() != nowVertex)
+					{
+						preVertex = preVertex->GetNext();
+					}
+
+					nextVertex = nowVertex->GetNext();
+					if (nextVertex == NULL)
+					{
+						nextVertex = nowShape->GetV();
+					}
+					//内外なし(始点or次の点,次の点,次の点)か(前の点，終点，始点)
+					if (!InOutJug(preVertex, nowVertex, nextVertex))
+					{
+						preVertex->SetNext(nowVertex->GetNext());
+
+						delete nowVertex;
+
+						select_shape = NULL;
+						select_vertex = NULL;
+						select_vertexNext = NULL;
+						NowSelect(0);
+					}
+				}
+				return;
+			}
+			nowVertex = nowVertex->GetNext();
+		}
+		nowShape = nowShape->GetSNext();
+	}
+}
+
+

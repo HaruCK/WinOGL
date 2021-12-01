@@ -30,6 +30,7 @@ public:
 	bool LastJudgment(float Bex, float Bey, CVertex* As, CVertex* Ae, CVertex* Bs);
 
 	bool InOutJug(float x, float y);
+	bool InOutJug(CVertex* preVertex, CVertex* nowVertex,CVertex* nextVertex);
 	bool AltInOutJug();
 	bool AltInOutJug(CShape* nowShape, float x, float y);
 	bool AltInOutJug(CShape* nowS);
@@ -45,6 +46,12 @@ public:
 	bool SelectShapeFlag = false;
 
 	void MoveVertexJug(float x,float y, CVertex* nowMoveXY);
+
+	bool SameSelect();
+	void AddVertex(float x, float y);
+	void DeleteVertex();
+
+
 private:
 	CShape* shape_head = NULL;
 	CShape* shape_change = NULL;
@@ -52,5 +59,9 @@ private:
 	CShape* select_shape = NULL;
 	CVertex* select_vertex = NULL;
 	CVertex* select_vertexNext = NULL;
+
+	CShape* preSelect_shape = NULL;
+	CVertex* preSelect_vertex = NULL;
+	CVertex* preSelect_vertexNext = NULL;
 };
 
