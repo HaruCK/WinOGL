@@ -13,6 +13,7 @@ CAdminControl::~CAdminControl()
 	shape_head->FreeShape();
 }
 
+//描写モード
 void CAdminControl::Draw()
 {
 	if (AxisFlag)//XYZ軸の描写，真なら描写
@@ -129,6 +130,29 @@ void CAdminControl::Draw()
 		glEnd();
 	}
 
+	//基点の描写
+	if (BasePointFlag)
+	{
+		glColor3f(0.4, 1.0, 0.7);
+		glPointSize(10);
+		glBegin(GL_POINTS);
+
+		glVertex2f(basePointX, basePointY);
+
+		glEnd();
+	}
+
+	//形に色を塗る
+	if (ShapePaintFlag)
+	{
+		ShapePaint();
+	}
+
+	if (ModeFlag == 2)
+	{
+		solidZline();
+	}
+
 }
 
 //新しいshapeへ移る
@@ -138,7 +162,7 @@ void CAdminControl::inheritShape() {
 	shape_head = newShape;
 }
 
-//点と点の距離
+//点と点(x,y)の距離
 float CAdminControl::Distance(CVertex* s, float x, float y)
 {
 	float d,X,Y;
@@ -151,6 +175,7 @@ float CAdminControl::Distance(CVertex* s, float x, float y)
 	return d;
 }
 
+//点(x,y)と点(x,y)の距離
 float CAdminControl::Distance(float vx, float vy, float x, float y)
 {
 	float d, X, Y;
@@ -163,7 +188,7 @@ float CAdminControl::Distance(float vx, float vy, float x, float y)
 	return d;
 }
 
-
+//
 float CAdminControl::Distance(float nx, float ny, float ex, float ey, float x, float y)
 {
 	float d = 1,s;
@@ -185,8 +210,6 @@ float CAdminControl::Distance(float nx, float ny, float ex, float ey, float x, f
 	return d;
 }
 
-
-
 //描写モードの時，点を打てるかの処理を行う
 void CAdminControl::CreateShape(float x, float y)
 {
@@ -196,7 +219,23 @@ void CAdminControl::CreateShape(float x, float y)
 		{
 			inheritShape();
 		}
+		else if(shape_head->GetV() != NULL)
+		{
+			CVertex* nowVertex = shape_head->GetV();
+			while (nowVertex->GetNext() != NULL)
+			{
+				nowVertex = nowVertex->GetNext();
+			}
+			if (Distance(nowVertex, x, y) == 0)
+			{
+				return;
+			}
+		}
+		AllShape = false;
 
+		//前の点とx,yが同じか調べる
+		
+		
 		if (shape_head->CountVertex() < 3)//三点未満のとき
 		{
 			if (shape_head->CountVertex() == 0)//一点目
@@ -218,6 +257,7 @@ void CAdminControl::CreateShape(float x, float y)
 			if (!JudCross(MrX, MsY) && !AltJudCross(MrX, MsY) && !AltInOutJug())//自交差，他交差，内包なし
 			{
 				inheritShape();
+				AllShape = true;
 			}
 			else if (!JudCross(x, y) && !AltJudCross(x, y))//自交差してない，他交差してない
 			{
@@ -232,19 +272,6 @@ void CAdminControl::CreateShape(float x, float y)
 			}
 		}
 	}
-	/*
-	else if (ModeFlag == 1)//選択モード
-	{
-		if (SelectVertexFlag)
-		{
-			if (!JudCross(x, y) && !AltJudCross(x, y))
-			{
-				
-			}
-		}
-		SelectPosition(x, y);
-	}
-	*/
 }
 
 //内積計算
@@ -290,7 +317,7 @@ bool CAdminControl::JudCross(float Bex, float Bey)
 	return false;
 }
 
-//点の自交差
+//点の自交差：バグ疑惑
 bool CAdminControl::JudCross(float vx, float vy, CVertex* preV, CShape* nowS)
 {
 	CVertex* As = preV;
@@ -541,6 +568,105 @@ bool CAdminControl::AltJudCross(float vx, float vy, CVertex* preV, CShape* nowS)
 	return true;
 }
 
+//形の他交差
+bool CAdminControl::AltJugCross(CShape* nowMoveShape)
+{
+	CShape* nowShape = shape_head;
+	if (nowShape->GetV() == NULL)
+	{
+		nowShape = nowShape->GetSNext();
+	}
+	if (nowShape == nowMoveShape)
+	{
+		nowShape = nowShape->GetSNext();
+	}
+	if (nowShape == NULL)
+	{
+		return false;
+	}
+
+	CVertex* As = nowShape->GetV();
+	CVertex* Ae = As->GetNext();
+
+	CVertex* Bs = nowMoveShape->GetV();
+	CVertex* Be = Bs->GetNext();
+	float Bex = Be->GetX();
+	float Bey = Be->GetY();
+
+	while (nowShape != NULL)
+	{
+		As = nowShape->GetV();
+		Ae = As->GetNext();
+
+		while (Ae != NULL)
+		{
+			Bs = nowMoveShape->GetV();
+			Be = Bs->GetNext();
+			Bex = Be->GetX();
+			Bey = Be->GetY();
+
+			while (Be != NULL)
+			{
+				Bex = Be->GetX();
+				Bey = Be->GetY();
+
+				if (LastJudgment(Bex, Bey, As, Ae, Bs))
+				{
+					return true;
+				}
+				Bs = Be;
+				Be = Be->GetNext();
+			}
+
+			Be = nowMoveShape->GetV();
+			Bex = Be->GetX();
+			Bey = Be->GetY();
+			if (LastJudgment(Bex, Bey, As, Ae, Bs))
+			{
+				return true;
+			}
+
+			As = Ae;
+			Ae = Ae->GetNext();
+		}
+		Ae = nowShape->GetV();
+
+		Bs = nowMoveShape->GetV();
+		Be = Bs->GetNext();
+		Bex = Be->GetX();
+		Bey = Be->GetY();
+
+		while (Be != NULL)
+		{
+			Bex = Be->GetX();
+			Bey = Be->GetY();
+
+			if (LastJudgment(Bex, Bey, As, Ae, Bs))
+			{
+				return true;
+			}
+			Bs = Be;
+			Be = Be->GetNext();
+		}
+
+		Be = nowMoveShape->GetV();
+		Bex = Be->GetX();
+		Bey = Be->GetY();
+		if (LastJudgment(Bex, Bey, As, Ae, Bs))
+		{
+			return true;
+		}
+
+		nowShape = nowShape->GetSNext();
+
+		if (nowShape == nowMoveShape)
+		{
+			nowShape = nowShape->GetSNext();
+		}
+	}
+	return false;
+}
+
 //交差判定
 bool CAdminControl::LastJudgment(float Bex, float Bey, CVertex* As, CVertex* Ae, CVertex* Bs)
 {
@@ -628,6 +754,7 @@ bool CAdminControl::InOutJug(float x, float y)
 	return false;
 }
 
+//頂点削除の内外判定
 bool CAdminControl::InOutJug(CVertex* preVertex, CVertex* nowVertex, CVertex* nextVertex)
 {
 	CShape* nowShape = shape_head;
@@ -684,6 +811,54 @@ bool CAdminControl::InOutJug(CVertex* preVertex, CVertex* nowVertex, CVertex* ne
 		nowShape = nowShape->GetSNext();
 	}
 	
+	return false;
+}
+
+//色塗りの内外判定
+bool CAdminControl::InOutJugTriangle(CShape* targetS,CVertex* cV, CVertex* cVN, CVertex* cVNN)
+{
+	float stockAng = 0;
+	float totalAng = 0;
+
+	CVertex* attV = targetS->GetV();
+
+	while (attV != NULL)
+	{
+		if (attV == cV || attV == cVN || attV == cVNN)
+		{
+			attV = attV->GetNext();
+		}
+		else
+		{
+			stockAng = 0;
+			totalAng = 0;
+
+			float x = attV->GetX();
+			float y = attV->GetY();
+
+			float preX = cV->GetX() - x;
+			float preY = cV->GetY() - y;
+			float nowX = cVN->GetX() - x;
+			float nowY = cVN->GetY() - y;
+			float nextX = cVNN->GetX() - x;
+			float nextY = cVNN->GetY() - y;
+
+			//角の計算
+			stockAng = atan2(gisk(preX, preY, nowX, nowY), nisk(preX, preY, nowX, nowY));
+			totalAng = totalAng + stockAng;
+			stockAng = atan2(gisk(nowX, nowY, nextX, nextY), nisk(nowX, nowY, nextX, nextY));
+			totalAng = totalAng + stockAng;
+			stockAng = atan2(gisk(nextX, nextY, preX, preY), nisk(nextX, nextY, preX, preY));
+			totalAng = totalAng + stockAng;
+
+			if (2 * PI - fabs(totalAng) <= 0.0001)
+			{
+				return true;
+			}
+			attV = attV->GetNext();
+		}
+	}
+
 	return false;
 }
 
@@ -748,6 +923,7 @@ bool CAdminControl::AltInOutJug()
 	return false;
 }
 
+//内包判定(一点が形に内包しているか)
 bool CAdminControl::AltInOutJug(CShape* nowShape, float x, float y)
 {
 	CVertex* As = nowShape->GetV();
@@ -800,7 +976,11 @@ bool CAdminControl::AltInOutJug(CShape* nowS)
 	}
 	if (nowShape == nowS)
 	{
-		nowShape = shape_head->GetSNext();
+		nowShape = nowShape->GetSNext();
+	}
+	if (nowShape == NULL)
+	{
+		return false;
 	}
 	CVertex* attV;
 
@@ -853,6 +1033,78 @@ bool CAdminControl::AltInOutJug(CShape* nowS)
 	return false;
 }
 
+//内包されたとき
+bool CAdminControl::AltOutInJug(CShape* nowMoveShape)
+{
+	CShape* nowShape = shape_head;
+	if (nowShape->GetV() == NULL)
+	{
+		nowShape = shape_head->GetSNext();
+	}
+	if (nowShape == nowMoveShape)
+	{
+		nowShape = nowShape->GetSNext();
+	}
+	if (nowShape == NULL)
+	{
+		return false;
+	}
+
+	CVertex* As = nowShape->GetV();
+	CVertex* Ae = As->GetNext();
+	
+	CVertex* attV;
+
+	float ax, ay, bx, by;
+
+	float totalAng = 0;
+	float stockAng = 0;
+
+	while (nowShape != NULL)
+	{
+		attV = nowMoveShape->GetV();
+
+		As = nowShape->GetV();
+		Ae = As->GetNext();
+		totalAng = 0;
+
+		while (As != NULL)
+		{
+			stockAng = 0;
+
+			ax = As->GetX() - attV->GetX();
+			ay = As->GetY() - attV->GetY();
+			bx = Ae->GetX() - attV->GetX();
+			by = Ae->GetY() - attV->GetY();
+
+			//角の計算
+			stockAng = atan2(gisk(ax, ay, bx, by), nisk(ax, ay, bx, by));
+
+			As = As->GetNext();
+			Ae = Ae->GetNext();
+
+			totalAng = totalAng + stockAng;
+
+			if (Ae == NULL)
+			{
+				Ae = nowShape->GetV();
+			}
+		}
+
+		if (2 * PI - fabs(totalAng) <= 0.0001)
+		{
+			return true;
+		}
+
+		nowShape = nowShape->GetSNext();
+		if (nowMoveShape == nowShape)
+		{
+			nowShape = nowShape->GetSNext();
+		}
+	}
+	return false;
+}
+
 //XYZ軸の描写
 void CAdminControl::DrawAxis()
 {
@@ -876,18 +1128,20 @@ void CAdminControl::DrawAxis()
 	glEnd();
 }
 
+//編集モード
 void CAdminControl::SelectPosition(float x, float y)
 {
 	CShape* nowShape = shape_head;
+	CVertex* nowVertex = NULL;
 
 	preSelect_shape = select_shape;
 	preSelect_vertex = select_vertex;
 	preSelect_vertexNext = select_vertexNext;
 
+	//点を見る(点,NULL,NULL)
 	while (nowShape != NULL)
 	{
-		//点を見る(点,NULL,NULL)
-		CVertex* nowVertex = nowShape->GetV();
+		nowVertex = nowShape->GetV();
 		while (nowVertex != NULL)
 		{
 			if (Distance(nowVertex->GetX(), nowVertex->GetY(), x, y) <= 0.03)
@@ -900,8 +1154,14 @@ void CAdminControl::SelectPosition(float x, float y)
 			}
 			nowVertex = nowVertex->GetNext();
 		}
+		nowShape = nowShape->GetSNext();
+	}
 
-		//点と線見る(点,点,NULL)
+	nowShape = shape_head;
+
+	//点と線見る(点,点,NULL)
+	while (nowShape != NULL)
+	{
 		nowVertex = nowShape->GetV();
 		float ex, ey;
 		while (nowVertex != NULL)
@@ -934,8 +1194,14 @@ void CAdminControl::SelectPosition(float x, float y)
 			}
 			nowVertex = nowVertex->GetNext();
 		}
+		nowShape = nowShape->GetSNext();
+	}
 
-		//形を見る(NULL,NULL,形)
+	nowShape = shape_head;
+
+	//形を見る(NULL,NULL,形)
+	while (nowShape != NULL)
+	{
 		if (nowShape != shape_head)
 		{
 			if (AltInOutJug(nowShape, x, y))
@@ -957,6 +1223,7 @@ void CAdminControl::SelectPosition(float x, float y)
 	return;
 }
 
+//SelectFlagのリセット
 void CAdminControl::NowSelect(int x)
 {
 	switch (x)
@@ -986,7 +1253,7 @@ void CAdminControl::NowSelect(int x)
 	}
 }
 
-//マウスの座標に移動させる
+//点をマウスの座標に移動させる
 void CAdminControl::MoveVertexJug(float x, float y, CVertex* nowMoveXY)
 {
 	CShape* nowShape = shape_head;
@@ -1037,17 +1304,93 @@ void CAdminControl::MoveVertexJug(float x, float y, CVertex* nowMoveXY)
 		nowMoveXY->SetXY(OrigX, OrigY);
 	}
 	//他交差している
-	else if (!AltJudCross(x, y, preVertex, nowShape))
+	if (!AltJudCross(x, y, preVertex, nowShape))
 	{
 		nowMoveXY->SetXY(OrigX, OrigY);
 	}
 	//内包している
-	else if (AltInOutJug(nowShape))
+	if (AltInOutJug(nowShape))
 	{
 		nowMoveXY->SetXY(OrigX, OrigY);
 	}
+	
+
 }
 
+//形をマウスの座標に移動させる
+void CAdminControl::MoveShapeJug(float x, float y, CShape* nowMoveShape)
+{
+	CShape* nowShape = shape_head;
+	if (nowShape->GetV() == NULL)
+	{
+		nowShape = nowShape->GetSNext();
+	}
+
+	if (nowMoveShape == NULL)
+	{
+		nowMoveShape = select_shape;
+	}
+
+	while (nowShape != nowMoveShape)
+	{
+		nowShape = nowShape->GetSNext();
+	}
+
+	CVertex* nowVertex = nowShape->GetV();
+
+	CVertex* OrigVertex = nowShape->GetV();
+	float OrigX = OrigVertex->GetX();
+	float OrigY = OrigVertex->GetY();
+
+	//移動量を(x,y)へ入れる．
+	x = x - OrigX;
+	y = y - OrigY;
+
+	//(x,y)を各座標へ
+	while (nowVertex != NULL)
+	{
+		nowVertex->SetXY(nowVertex->GetX() + x, nowVertex->GetY() + y);
+		nowVertex = nowVertex->GetNext();
+	}
+
+	//他交差している
+	if (AltJugCross(nowMoveShape))
+	{
+		nowVertex = nowShape->GetV();
+
+		while (nowVertex != NULL)
+		{
+			nowVertex->SetXY(nowVertex->GetX() - x, nowVertex->GetY() - y);
+			nowVertex = nowVertex->GetNext();
+		}
+	}
+
+	//内包している
+	else if (AltInOutJug(nowMoveShape))
+	{
+		nowVertex = nowShape->GetV();
+
+		while (nowVertex != NULL)
+		{
+			nowVertex->SetXY(nowVertex->GetX() - x, nowVertex->GetY() - y);
+			nowVertex = nowVertex->GetNext();
+		}
+	}
+
+	//内包されている
+	else if (AltOutInJug(nowMoveShape))
+	{
+		nowVertex = nowShape->GetV();
+
+		while (nowVertex != NULL)
+		{
+			nowVertex->SetXY(nowVertex->GetX() - x, nowVertex->GetY() - y);
+			nowVertex = nowVertex->GetNext();
+		}
+	}
+}
+
+//前回選んだ点，線，形と同じか
 bool CAdminControl::SameSelect()
 {
 	if (preSelect_shape == select_shape && preSelect_vertex == select_vertex && preSelect_vertexNext == select_vertexNext)
@@ -1057,6 +1400,7 @@ bool CAdminControl::SameSelect()
 	return false;
 }
 
+//点を追加
 void CAdminControl::AddVertex(float x, float y)
 {
 	CShape* nowShape = shape_head;
@@ -1076,17 +1420,12 @@ void CAdminControl::AddVertex(float x, float y)
 	float s ,t;
 	CVertex ba;
 	CVertex bp;
-	//CVertex ap;
 
 	ba.SetXY(sx - ex, sy - ey);//P1->P2
 	bp.SetXY(x - ex, y - ey);//P2->P3
-	//ap.SetXY(x - sx, y - sy);//P1->P3
 
 	s = nisk(bp.GetX(), bp.GetY(), ba.GetX(), ba.GetY()) / nisk(ba.GetX(), ba.GetY(), ba.GetX(), ba.GetY());
 	t = 1 - s;
-
-	//x = s * ba.GetX() + t * bp.GetX();
-	//y = s * ba.GetY() + t * bp.GetY();
 
 	x = nowEdgeS->GetX() + ba.GetX() * -t;
 	y = nowEdgeS->GetY() + ba.GetY() * -t;
@@ -1110,7 +1449,7 @@ void CAdminControl::AddVertex(float x, float y)
 	NowSelect(0);
 }
 
-
+//点を消す．
 void CAdminControl::DeleteVertex()
 {
 	CVertex* preVertex = NULL;
@@ -1190,5 +1529,554 @@ void CAdminControl::DeleteVertex()
 		nowShape = nowShape->GetSNext();
 	}
 }
+
+//基点の追加
+void CAdminControl::BasePointSetting(float x,float y)
+{
+	if (x == NULL && y == NULL)
+	{
+		BasePointFlag = false;
+	}
+	else
+	{
+		BasePointFlag = true;
+		basePointX = x;
+		basePointY = y;
+	}
+}
+
+//形の拡大縮小
+void CAdminControl::ResizeShape(float s)
+{
+	CShape* nowShape = shape_head;
+	CShape* nowMoveShape = select_shape;
+
+	if (nowShape->GetV() == NULL)
+	{
+		nowShape = nowShape->GetSNext();
+	}
+
+	while (nowShape != nowMoveShape)
+	{
+		nowShape = nowShape->GetSNext();
+	}
+
+	CVertex* nowVertex = nowShape->GetV();
+
+	float x = 0;
+	float y = 0;
+
+	if (s > 0)
+	{
+		s = 1.05;
+	}
+	else
+	{
+		s = 0.95;
+	}
+	
+	//(x,y)を各座標へ
+	while (nowVertex != NULL)
+	{
+		x = s * (nowVertex->GetX() - basePointX) + basePointX;
+		y = s * (nowVertex->GetY() - basePointY) + basePointY;
+		nowVertex->SetXY(x,y);
+
+		nowVertex = nowVertex->GetNext();
+	}
+
+	//めっちゃちっさい
+	float totalEdge = 0;
+	nowVertex = nowShape->GetV();
+	while (nowVertex->GetNext() != NULL)
+	{
+		CVertex* nextVertex = nowVertex->GetNext();
+		totalEdge = totalEdge + Distance(nowShape->GetV(),nextVertex->GetX(), nextVertex->GetY());
+		nowVertex = nowVertex->GetNext();
+	}
+	if (totalEdge <= 0.3)
+	{
+		nowVertex = nowShape->GetV();
+
+		while (nowVertex != NULL)
+		{
+			float disX = (nowVertex->GetX() - basePointX) / s + basePointX;
+			float disY = (nowVertex->GetY() - basePointY) / s + basePointY;
+
+			nowVertex->SetXY(disX, disY);
+			nowVertex = nowVertex->GetNext();
+		}
+	}
+	
+	//他交差している
+	if (AltJugCross(nowMoveShape))
+	{
+		nowVertex = nowShape->GetV();
+
+		while (nowVertex != NULL)
+		{
+			float disX = (nowVertex->GetX() - basePointX) / s + basePointX;
+			float disY = (nowVertex->GetY() - basePointY) / s + basePointY;
+
+			nowVertex->SetXY(disX,disY);
+			nowVertex = nowVertex->GetNext();
+		}
+	}
+
+	//内包している
+	else if (AltInOutJug(nowMoveShape))
+	{
+		nowVertex = nowShape->GetV();
+
+		while (nowVertex != NULL)
+		{
+			float disX = (nowVertex->GetX() - basePointX) / s + basePointX;
+			float disY = (nowVertex->GetY() - basePointY) / s + basePointY;
+
+			nowVertex->SetXY(nowVertex->GetX() - disX, nowVertex->GetY() - disY);
+			nowVertex = nowVertex->GetNext();
+		}
+	}
+
+	//内包されている
+	else if (AltOutInJug(nowMoveShape))
+	{
+		nowVertex = nowShape->GetV();
+
+		while (nowVertex != NULL)
+		{
+			float disX = (nowVertex->GetX() - basePointX) / s + basePointX;
+			float disY = (nowVertex->GetY() - basePointY) / s + basePointY;
+
+			nowVertex->SetXY(nowVertex->GetX() - disX, nowVertex->GetY() - disY);
+			nowVertex = nowVertex->GetNext();
+		}
+	}
+}
+
+//形の回転
+void CAdminControl::RollShape(float s)
+{
+	s = s / 1080;
+	CShape* nowShape = shape_head;
+	CShape* nowMoveShape = select_shape;
+
+	if (nowShape->GetV() == NULL)
+	{
+		nowShape = nowShape->GetSNext();
+	}
+
+	while (nowShape != nowMoveShape)
+	{
+		nowShape = nowShape->GetSNext();
+	}
+
+	CVertex* nowVertex = nowShape->GetV();
+
+	float x = 0;
+	float y = 0;
+
+	//(x,y)を各座標へ
+	while (nowVertex != NULL)
+	{
+		x = (nowVertex->GetX() - basePointX) * cos(s) - (nowVertex->GetY() - basePointY) * sin(s) + basePointX;
+		y = (nowVertex->GetX() - basePointX) * sin(s) + (nowVertex->GetY() - basePointY) * cos(s) + basePointY;
+
+		nowVertex->SetXY(x, y);
+		nowVertex = nowVertex->GetNext();
+	}
+
+	//他交差している
+	if (AltJugCross(nowMoveShape))
+	{
+		nowVertex = nowShape->GetV();
+		s = -1 * s;
+		while (nowVertex != NULL)
+		{
+			float disX = (nowVertex->GetX() - basePointX) * cos(s) - (nowVertex->GetY() - basePointY) * sin(s) + basePointX;
+			float disY = (nowVertex->GetX() - basePointX) * sin(s) + (nowVertex->GetY() - basePointY) * cos(s) + basePointY;
+
+			nowVertex->SetXY(disX, disY);
+			nowVertex = nowVertex->GetNext();
+		}
+	}
+
+	//内包している
+	else if (AltInOutJug(nowMoveShape))
+	{
+		nowVertex = nowShape->GetV();
+		s = -1 * s;
+		while (nowVertex != NULL)
+		{
+			float disX = (nowVertex->GetX() - basePointX) * cos(s) - (nowVertex->GetY() - basePointY) * sin(s) + basePointX;
+			float disY = (nowVertex->GetX() - basePointX) * sin(s) + (nowVertex->GetY() - basePointY) * cos(s) + basePointY;
+
+			nowVertex->SetXY(disX,disY);
+			nowVertex = nowVertex->GetNext();
+		}
+	}
+
+	//内包されている
+	else if (AltOutInJug(nowMoveShape))
+	{
+		nowVertex = nowShape->GetV();
+		s = -1 * s;
+		while (nowVertex != NULL)
+		{
+			float disX = (nowVertex->GetX() - basePointX) * cos(s) - (nowVertex->GetY() - basePointY) * sin(s) + basePointX;
+			float disY = (nowVertex->GetX() - basePointX) * sin(s) + (nowVertex->GetY() - basePointY) * cos(s) + basePointY;
+
+			nowVertex->SetXY(disX,disY);
+			nowVertex = nowVertex->GetNext();
+		}
+	}
+}
+
+//特定の形を塗る(未開発)
+void CAdminControl::ShapePainting(float x, float y)
+{
+	CShape* paintShape = select_shape;
+	CVertex* copyVertex = paintShape->GetV();
+
+	if (!AltInOutJug(paintShape, x, y))
+	{
+		return;
+	}
+
+	/*
+	while (paintShape->CountVertex() > 3)
+	{
+
+
+		glBegin(GL_TRIANGLES);
+		glVertex2f(copyVertex->GetX(), copyVertex->GetY());
+		glVertex2f(copyVertex->GetNext()->GetX(), copyVertex->GetNext()->GetY());
+		glVertex2f(copyVertex->GetNext()->GetNext()->GetX(), copyVertex->GetNext()->GetNext()->GetY());
+		glEnd();
+
+		copyVertex = copyVertex->GetNext();
+
+		delete paintShape->GetV();
+	}
+	
+	glBegin(GL_TRIANGLES);
+	glColor3f(1.0, 0.0, 1.0);
+	glVertex2f(copyVertex->GetX(), copyVertex->GetY());
+	glVertex2f(0,0);
+	glVertex2f(1,1);
+	glEnd();
+
+	*/
+
+	
+
+}
+
+//形を塗る
+void CAdminControl::ShapePaint()
+{
+	//オリジナル
+	CShape* paintShape = shape_head;
+
+	//そもそも図形がない
+	if (paintShape == NULL)
+	{
+		return;
+	}
+
+	paintShape = paintShape->GetSNext();
+
+	while (paintShape != NULL)
+	{
+		CShape* paintShapeCopy = new CShape();
+		CVertex* nowV = paintShape->GetV();
+
+		while (nowV != NULL)
+		{
+			paintShapeCopy->inheritVertex(nowV->GetX(), nowV->GetY());
+			nowV = nowV->GetNext();
+		}
+
+		CVertex* cV = paintShapeCopy->GetV();
+		CVertex* cVN = cV->GetNext();
+		CVertex* cVNN = cVN->GetNext();
+
+		while (paintShapeCopy->CountVertex() > 3)
+		{
+
+			if(AltInOutJug(paintShapeCopy, ((cV->GetX()+ cVN->GetX() + cVNN->GetX()) / 3), ((cV->GetY() + cVN->GetY() + cVNN->GetY()) / 3)) && !InOutJugTriangle(paintShapeCopy,cV,cVN,cVNN))
+			{
+				glBegin(GL_TRIANGLES);
+				glColor3f(0.0, 0.5, 0.5);
+				glVertex2f(cV->GetX(), cV->GetY());
+				glVertex2f(cVN->GetX(), cVN->GetY());
+				glVertex2f(cVNN->GetX(), cVNN->GetY());
+				glEnd();
+
+				if (cVN->GetNext() == NULL)//消すのが終点 123456Nの5"6"1で5->NULL
+				{
+					cV->SetNext(NULL);
+				}
+				else if(cV->GetNext() == NULL)//消すのが始点 123456Nの6"1"2で
+				{
+					paintShapeCopy->SetV(cVNN);
+				}
+				else//消すのは連チャン
+				{
+					cV->SetNext(cVNN);
+				}
+				CVertex* deleV = cVN;
+
+				delete deleV;
+
+				//cVN = cV;
+
+				if (cV->GetNext() == NULL)
+				{
+					cVN = paintShapeCopy->GetV();
+				}
+				else
+				{
+					cVN = cVNN;
+				}
+
+				if (cVN->GetNext() == NULL)
+				{
+					cVNN = paintShapeCopy->GetV();
+				}
+				else
+				{
+					cVNN = cVNN->GetNext();
+				}
+			}
+			//塗れないとき
+			else
+			{
+				cV = cVN;
+				cVN = cVNN;
+				if (cVNN->GetNext() == NULL)
+				{
+					cVNN = paintShapeCopy->GetV();
+				}
+				else
+				{
+					cVNN = cVNN->GetNext();
+				}
+			}
+		}
+
+		//残った三角形
+		glBegin(GL_TRIANGLES);
+		glColor3f(0.0, 0.5, 0.5);
+		glVertex2f(cV->GetX(), cV->GetY());
+		glVertex2f(cVN->GetX(), cVN->GetY());
+		glVertex2f(cVNN->GetX(), cVNN->GetY());
+		glEnd();
+
+		delete cVNN;
+		delete cVN;
+		delete cV;
+		paintShapeCopy = NULL;
+		delete paintShapeCopy;
+
+		paintShape = paintShape->GetSNext();
+	}
+}
+
+//視点の回転
+void CAdminControl::persRotate()
+{
+	glRotatef(SumDiffRotateX * 200.0, 0.0, 1.0, 0.0);
+	glRotatef(SumDiffRotateY * 200.0, 1.0, 0.0, 0.0);
+
+
+}
+
+//視点の平行移動
+void CAdminControl::persTrans()
+{
+	glTranslatef(1.3 * SumDiffTransX, 1.3 * SumDiffTransY, 0.0);
+}
+
+//視点の拡大縮小...未開発
+void CAdminControl::persScale()
+{
+	//glScalef(1.0, 1.0, 1.0 * DiffScale);
+}
+
+//立体にする
+void CAdminControl::solidZline()
+{
+	//ライティング
+	glLightfv(GL_LIGHT0, GL_DIFFUSE, dif);
+	glLightfv(GL_LIGHT0, GL_AMBIENT, dif);
+	glEnable(GL_LIGHT0);
+	glEnable(GL_LIGHTING);
+
+
+	//オリジナル
+	CShape* paintShape = shape_head;
+
+	//そもそも図形がない
+	if (paintShape == NULL)
+	{
+		return;
+	}
+
+	paintShape = paintShape->GetSNext();
+
+	//下面
+	while (paintShape != NULL)
+	{
+		CShape* paintShapeCopy = new CShape();
+		CVertex* nowV = paintShape->GetV();
+
+		while (nowV != NULL)
+		{
+			paintShapeCopy->inheritVertex(nowV->GetX(), nowV->GetY());
+			nowV = nowV->GetNext();
+		}
+
+		CVertex* cV = paintShapeCopy->GetV();
+		CVertex* cVN = cV->GetNext();
+		CVertex* cVNN = cVN->GetNext();
+
+		while (paintShapeCopy->CountVertex() > 3)
+		{
+
+			if (AltInOutJug(paintShapeCopy, ((cV->GetX() + cVN->GetX() + cVNN->GetX()) / 3), ((cV->GetY() + cVN->GetY() + cVNN->GetY()) / 3)) && !InOutJugTriangle(paintShapeCopy, cV, cVN, cVNN))
+			{
+				//下面
+				glBegin(GL_TRIANGLES);
+				glColor3f(0.0, 0.5, 0.5);
+				glVertex2f(cV->GetX(), cV->GetY());
+				glVertex2f(cVN->GetX(), cVN->GetY());
+				glVertex2f(cVNN->GetX(), cVNN->GetY());
+				glEnd();
+
+				//上面
+				glBegin(GL_TRIANGLES);
+				glColor3f(0.0, 0.5, 0.5);
+				glVertex3f(cV->GetX(), cV->GetY(),ZLine);
+				glVertex3f(cVN->GetX(), cVN->GetY(),ZLine);
+				glVertex3f(cVNN->GetX(), cVNN->GetY(),ZLine);
+				glEnd();
+
+				if (cVN->GetNext() == NULL)//消すのが終点 123456Nの5"6"1で5->NULL
+				{
+					cV->SetNext(NULL);
+				}
+				else if (cV->GetNext() == NULL)//消すのが始点 123456Nの6"1"2で
+				{
+					paintShapeCopy->SetV(cVNN);
+				}
+				else//消すのは連チャン
+				{
+					cV->SetNext(cVNN);
+				}
+				CVertex* deleV = cVN;
+
+				delete deleV;
+
+				//cVN = cV;
+
+				if (cV->GetNext() == NULL)
+				{
+					cVN = paintShapeCopy->GetV();
+				}
+				else
+				{
+					cVN = cVNN;
+				}
+
+				if (cVN->GetNext() == NULL)
+				{
+					cVNN = paintShapeCopy->GetV();
+				}
+				else
+				{
+					cVNN = cVNN->GetNext();
+				}
+			}
+			//塗れないとき
+			else
+			{
+				cV = cVN;
+				cVN = cVNN;
+				if (cVNN->GetNext() == NULL)
+				{
+					cVNN = paintShapeCopy->GetV();
+				}
+				else
+				{
+					cVNN = cVNN->GetNext();
+				}
+			}
+		}
+
+		//残った三角形
+		glBegin(GL_TRIANGLES);
+		glColor3f(0.0, 0.5, 0.5);
+		glVertex2f(cV->GetX(), cV->GetY());
+		glVertex2f(cVN->GetX(), cVN->GetY());
+		glVertex2f(cVNN->GetX(), cVNN->GetY());
+		glEnd();
+
+		glBegin(GL_TRIANGLES);
+		glColor3f(0.0, 0.5, 0.5);
+		glVertex3f(cV->GetX(), cV->GetY(), ZLine);
+		glVertex3f(cVN->GetX(), cVN->GetY(), ZLine);
+		glVertex3f(cVNN->GetX(), cVNN->GetY(), ZLine);
+		glEnd();
+
+		delete cVNN;
+		delete cVN;
+		delete cV;
+		paintShapeCopy = NULL;
+		delete paintShapeCopy;
+
+		paintShape = paintShape->GetSNext();
+	}
+
+	//横面
+	paintShape = shape_head;
+	paintShape = paintShape->GetSNext();
+
+	while (paintShape != NULL)
+	{
+		CVertex* V = paintShape->GetV();
+		CVertex* VN = V->GetNext();
+
+		while (VN != NULL)
+		{
+			glBegin(GL_POLYGON);
+			glColor3f(0.0, 0.5, 0.5);
+			glVertex3f(V->GetX(),V->GetY(), 0);
+			glVertex3f(VN->GetX(),VN->GetY(), 0);
+			glVertex3f(VN->GetX(), VN->GetY(), ZLine);
+			glVertex3f(V->GetX(), V->GetY(), ZLine);
+			glEnd();
+
+			V = VN;
+			VN = VN->GetNext();
+		}
+
+		VN = paintShape->GetV();
+
+		glBegin(GL_POLYGON);
+		glColor3f(0.0, 0.5, 0.5);
+		glVertex3f(V->GetX(), V->GetY(), 0);
+		glVertex3f(VN->GetX(), VN->GetY(), 0);
+		glVertex3f(VN->GetX(), VN->GetY(), ZLine);
+		glVertex3f(V->GetX(), V->GetY(), ZLine);
+		glEnd();
+
+		paintShape = paintShape->GetSNext();
+	}
+
+	glDisable(GL_LIGHTING);
+	glDisable(GL_LIGHT0);
+}
+
 
 

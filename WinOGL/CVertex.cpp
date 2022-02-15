@@ -49,10 +49,12 @@ void CVertex::SetXY(float new_x, float new_y)
 		new_x = new_x;//* (-1);
 	}
 	x = new_x;
+
 	if (new_y < 0) {
 		new_y = new_y;//*(-1);
 	}
 	y = new_y;
+
 }
 
 

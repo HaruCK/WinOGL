@@ -22,6 +22,10 @@ private:
 // 操作
 public:
 	bool nowLButton = false;
+	bool nowRButton = false;
+
+	float preMousemoveX = 0;
+	float preMousemoveY = 0;
 
 // オーバーライド
 public:
@@ -54,7 +58,7 @@ public:
 private:
 	CAdminControl AC;
 public:
-	int ModeFlag = 1;
+	//int ModeFlag = 1;
 
 	afx_msg void OnXyz();
 	afx_msg void OnUpdateXyz(CCmdUI* pCmdUI);
@@ -66,6 +70,13 @@ public:
 	afx_msg void OnLButtonUp(UINT nFlags, CPoint point);
 	afx_msg void OnMouseMove(UINT nFlags, CPoint point);
 	afx_msg void OnRButtonDown(UINT nFlags, CPoint point);
+	afx_msg void OnMButtonDown(UINT nFlags, CPoint point);
+	afx_msg BOOL OnMouseWheel(UINT nFlags, short zDelta, CPoint pt);
+	afx_msg void OnRButtonUp(UINT nFlags, CPoint point);
+	afx_msg void OnColor();
+	afx_msg void OnUpdateColor(CCmdUI* pCmdUI);
+	afx_msg void OnViewchange();
+	afx_msg void OnUpdateViewchange(CCmdUI* pCmdUI);
 };
 
 #ifndef _DEBUG  // WinOGLView.cpp のデバッグ バージョン

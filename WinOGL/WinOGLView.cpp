@@ -37,6 +37,13 @@ BEGIN_MESSAGE_MAP(CWinOGLView, CView)
 	ON_WM_LBUTTONUP()
 	ON_WM_MOUSEMOVE()
 	ON_WM_RBUTTONDOWN()
+	ON_WM_MBUTTONDOWN()
+	ON_WM_MOUSEWHEEL()
+	ON_WM_RBUTTONUP()
+	ON_COMMAND(ID_COLOR, &CWinOGLView::OnColor)
+	ON_UPDATE_COMMAND_UI(ID_COLOR, &CWinOGLView::OnUpdateColor)
+	ON_COMMAND(ID_ViewChange, &CWinOGLView::OnViewchange)
+	ON_UPDATE_COMMAND_UI(ID_ViewChange, &CWinOGLView::OnUpdateViewchange)
 END_MESSAGE_MAP()
 
 // CWinOGLView コンストラクション/デストラクション
@@ -65,6 +72,7 @@ BOOL CWinOGLView::PreCreateWindow(CREATESTRUCT& cs)
 
 void CWinOGLView::OnDraw(CDC* pDC)
 {
+	//描画系はぜんぶここでOKナス
 	CWinOGLDoc* pDoc = GetDocument();
 	ASSERT_VALID(pDoc);
 	if (!pDoc)
@@ -72,10 +80,35 @@ void CWinOGLView::OnDraw(CDC* pDC)
 
 	wglMakeCurrent(pDC->m_hDC, m_hRC);
 	glClearColor(0.0, 0.0, 0.0, 1.0);
-	glClear(GL_COLOR_BUFFER_BIT /* | GL_DEPTH_BUFFER_BIT*/);
+	glClear(GL_COLOR_BUFFER_BIT  | GL_DEPTH_BUFFER_BIT);
+
+	glEnable(GL_DEPTH_TEST);
+	glDepthFunc(GL_LEQUAL);
+
+	glLoadIdentity();
+
+	if (AC.ModeFlag == 2)
+	{
+		//AC.solidZline();
+
+		AC.persTrans();
+		AC.persRotate();
+
+	}
+	else
+	{
+		AC.SumDiffRotateX = 0;
+		AC.SumDiffRotateY = 0;
+		AC.SumDiffTransX = 0;
+		AC.SumDiffTransY = 0;
+		AC.ZLine = 0.1;
+		glLoadIdentity();
+	}
 
 	AC.Draw();
 	
+	glDisable(GL_DEPTH_TEST);
+
 	glFlush();
 	SwapBuffers(pDC->m_hDC);
 	wglMakeCurrent(pDC->m_hDC, NULL);
@@ -148,6 +181,8 @@ void CWinOGLView::OnLButtonDown(UINT nFlags, CPoint point)
 			AC.AddVertex(ClickX, ClickY);
 		}
 	}
+
+
 	RedrawWindow();
 	CView::OnLButtonDown(nFlags, point);
 }
@@ -256,6 +291,7 @@ void CWinOGLView::OnUpdateXyz(CCmdUI* pCmdUI)
 void CWinOGLView::OnDrawing()
 {
 	AC.ModeFlag = 0;
+
 	RedrawWindow();
 }
 
@@ -274,6 +310,7 @@ void CWinOGLView::OnUpdateDrawing(CCmdUI* pCmdUI)
 void CWinOGLView::OnEdit()
 {
 	AC.ModeFlag = 1;
+
 	RedrawWindow();
 }
 
@@ -292,8 +329,8 @@ void CWinOGLView::OnUpdateEdit(CCmdUI* pCmdUI)
 void CWinOGLView::OnLButtonUp(UINT nFlags, CPoint point)
 {
 	nowLButton = false;
+	
 	RedrawWindow();
-
 	CView::OnLButtonUp(nFlags, point);
 }
 
@@ -324,26 +361,68 @@ void CWinOGLView::OnMouseMove(UINT nFlags, CPoint point)
 		ClickY = ClickY * hi;
 	}
 
-
-	if (AC.ModeFlag == 1 && AC.SelectVertexFlag)
+	if (AC.ModeFlag == 1)
 	{
-		if (nowLButton)
+		if (AC.SelectVertexFlag && nowLButton)
 		{
 			AC.MoveVertexJug(ClickX, ClickY, NULL);
+		}
+		else if(AC.SelectShapeFlag && nowLButton)
+		{
+			AC.MoveShapeJug(ClickX,ClickY,NULL);
 		}
 
 	}
 
-	
-	RedrawWindow();
-	CView::OnMouseMove(nFlags, point);
+	//視点変更のとき
+	if (AC.ModeFlag == 2)
+	{
+		//前回のフレームと差分取る．
+		if (nowLButton)
+		{
+			AC.DiffRotateX = ClickX - preMousemoveX;
+			AC.DiffRotateY = ClickY - preMousemoveY;
 
+			AC.SumDiffRotateX = AC.SumDiffRotateX + AC.DiffRotateX;
+			AC.SumDiffRotateY = AC.SumDiffRotateY + AC.DiffRotateY;
+
+			AC.DiffTransX = 0;
+			AC.DiffTransY = 0;
+		}
+		else if (nowRButton)
+		{
+			AC.DiffTransX = ClickX - preMousemoveX;
+			AC.DiffTransY = ClickY - preMousemoveY;
+
+			AC.SumDiffTransX = AC.SumDiffTransX + AC.DiffTransX;
+			AC.SumDiffTransY = AC.SumDiffTransY + AC.DiffTransY;
+
+			AC.DiffRotateX = 0;
+			AC.DiffRotateY = 0;
+		}
+		else
+		{
+			AC.DiffTransX = 0;
+			AC.DiffTransY = 0;
+
+			AC.DiffRotateX = 0;
+			AC.DiffRotateY = 0;
+		}
+	}
+
+	//保存
+	preMousemoveX = ClickX;
+	preMousemoveY = ClickY;
+
+	RedrawWindow();
+
+	CView::OnMouseMove(nFlags, point);
 }
 
 
 void CWinOGLView::OnRButtonDown(UINT nFlags, CPoint point)
 {
-	//nowRButton = true;
+	nowRButton = true;
 	CRect rect;
 	GetClientRect(rect); // 描画領域の大きさを取得
 
@@ -375,6 +454,140 @@ void CWinOGLView::OnRButtonDown(UINT nFlags, CPoint point)
 			AC.DeleteVertex();
 		}
 	}
+
 	RedrawWindow();
 	CView::OnRButtonDown(nFlags, point);
+}
+
+
+void CWinOGLView::OnMButtonDown(UINT nFlags, CPoint point)
+{
+	CRect rect;
+	GetClientRect(rect); // 描画領域の大きさを取得
+
+	rect.Width();
+	rect.Height();
+
+	ClickX = (double)point.x / rect.Width();
+	ClickX = (ClickX * 2) - 1;
+
+	ClickY = (double)point.y / rect.Height();
+	ClickY = (ClickY - 1) * -1;
+	ClickY = (ClickY * 2) - 1;
+
+	if (rect.Width() > rect.Height())
+	{
+		double hi = (double)rect.Width() / rect.Height();
+		ClickX = ClickX * hi;
+	}
+	else
+	{
+		double hi = (double)rect.Height() / rect.Width();
+		ClickY = ClickY * hi;
+	}
+
+
+	if (AC.ModeFlag == 1)
+	{
+		if (AC.SelectShapeFlag)
+		{
+			AC.BasePointSetting(ClickX, ClickY);
+			AC.BasePointFlag = true;
+		}
+		else
+		{
+			AC.BasePointSetting(NULL, NULL);
+			AC.BasePointFlag = false;
+		}
+	}
+
+	RedrawWindow();
+	CView::OnMButtonDown(nFlags, point);
+}
+
+
+BOOL CWinOGLView::OnMouseWheel(UINT nFlags, short zDelta, CPoint pt)
+{
+
+	if (AC.ModeFlag == 1)
+	{
+		if (AC.SelectShapeFlag && AC.BasePointFlag && !nowRButton)
+		{
+			AC.ResizeShape(zDelta);
+		}
+		else if (AC.SelectShapeFlag && AC.BasePointFlag && nowRButton)
+		{
+			AC.RollShape(zDelta);
+		}
+	}
+
+	if (AC.ModeFlag == 2)
+	{
+		AC.DiffMouseWheel = (zDelta / 120) * 0.01;
+
+		if (AC.ZLine + AC.DiffMouseWheel > 0.01 && AC.ZLine + AC.DiffMouseWheel < 1.0)
+		{
+			AC.ZLine = AC.ZLine + AC.DiffMouseWheel;
+		}
+	}
+
+	RedrawWindow();
+	return CView::OnMouseWheel(nFlags, zDelta, pt);
+}
+
+
+void CWinOGLView::OnRButtonUp(UINT nFlags, CPoint point)
+{
+	nowRButton = false;
+
+	RedrawWindow();
+	CView::OnRButtonUp(nFlags, point);
+}
+
+
+void CWinOGLView::OnColor()
+{
+	if (!AC.ShapePaintFlag)
+	{
+		AC.ShapePaintFlag = true;
+	}
+	else
+	{
+		AC.ShapePaintFlag = false;
+	}
+	RedrawWindow();
+}
+
+
+void CWinOGLView::OnUpdateColor(CCmdUI* pCmdUI)
+{
+	if (AC.ShapePaintFlag)
+	{
+		pCmdUI->SetCheck(true);
+	}
+	else
+	{
+		pCmdUI->SetCheck(false);
+	}
+}
+
+
+void CWinOGLView::OnViewchange()
+{
+	AC.ModeFlag = 2;
+	
+	RedrawWindow();
+}
+
+
+void CWinOGLView::OnUpdateViewchange(CCmdUI* pCmdUI)
+{
+	if (AC.ModeFlag == 2)
+	{
+		pCmdUI->SetCheck(true);
+	}
+	else
+	{
+		pCmdUI->SetCheck(false);
+	}
 }

@@ -26,13 +26,18 @@
 #define ID_CHOICE                       32797
 #define ID_EDIT                         32798
 #define ID_VERTEX_MOV                   32799
+#define ID_32800                        32800
+#define ID_COLOR                        32801
+#define ID_32802                        32802
+#define ID_ViewChange                   32803
+#define ID_BUTTON32804                  32804
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        310
-#define _APS_NEXT_COMMAND_VALUE         32800
+#define _APS_NEXT_COMMAND_VALUE         32805
 #define _APS_NEXT_CONTROL_VALUE         1000
 #define _APS_NEXT_SYMED_VALUE           310
 #endif
